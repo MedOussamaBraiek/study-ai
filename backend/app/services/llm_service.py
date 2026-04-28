@@ -73,3 +73,58 @@ Context:
         questions = raw  
 
     return questions
+
+def evaluate_answer(question: str, user_answer: str, correct_answer: str | None, context: str | None):
+
+    prompt = f"""
+You are an expert teacher evaluating a student's answer.
+
+Your task:
+- Check if the user's answer is correct or partially correct
+- Give a score from 0 to 10
+- Explain why
+- If wrong, provide the correct answer
+
+Rules:
+- Be strict but fair
+- Use ONLY the context if provided
+
+Question:
+{question}
+
+User Answer:
+{user_answer}
+
+Correct Answer (if provided):
+{correct_answer}
+
+Context:
+{context}
+
+Return ONLY JSON:
+
+{{
+  "score": 0-10,
+  "is_correct": true/false,
+  "feedback": "...",
+  "correct_answer": "..."
+}}
+"""
+    
+    response = requests.post(
+    "http://localhost:11434/api/generate",
+    json={
+        "model": "llama3.2",
+        "prompt": prompt,
+        "stream": False
+    }   
+    )
+
+    raw = response.json().get("response", "")
+
+    try:
+        result = json.loads(raw)
+    except:
+        result = raw  
+
+    return result
