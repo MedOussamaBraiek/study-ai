@@ -1,8 +1,8 @@
 from app.services.rag_service import retrieve_context
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
-from app.services.llm_service import generate_answer
 import app.services.vector_store as vector_store
+from app.services.llm_service import generate_answer, generate_questions_from_context
 
 class QuestionRequest(BaseModel):
     question: str
@@ -10,6 +10,7 @@ class QuestionRequest(BaseModel):
 class QuestionGenRequest(BaseModel):
     topic: str | None = None
     num_questions: int = 5
+    mode: str = "study"
 
 
 router = APIRouter()
@@ -42,4 +43,11 @@ async def ask_question(data: QuestionRequest):
 
 @router.post("/generate-questions")
 async def generate_questions(data: QuestionGenRequest):
-    context, sources = retrieve_context(data.topic if data.topic else "general overview")
+    context, sources = retrieve_context(data.topic if data.topic else "summarize key concepts")
+
+    questions = generate_questions_from_context(context, data.num_questions, data.mode)
+
+    return {
+        "questions": questions,
+        "sources": sources
+    }

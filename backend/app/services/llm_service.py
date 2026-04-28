@@ -1,4 +1,6 @@
 import requests
+import json
+
 
 def generate_answer(context: str, question: str):
     prompt = f"""
@@ -24,3 +26,50 @@ def generate_answer(context: str, question: str):
     )
 
     return response.json()["response"]
+
+def generate_questions_from_context(context: str, num_questions: int, mode: str):
+    difficulty = "easy and medium" if mode == "study" else "hard"
+
+    prompt = f"""
+You are an expert teacher.
+
+Based ONLY on the context below, generate {num_questions} {difficulty} questions.
+
+Rules:
+- Mode: {mode}
+- If study → easy/medium
+- If interview → harder
+- Each question must have 3 options
+- Include the correct answer
+
+Return STRICT JSON format like this:
+
+[
+  {{
+    "question": "...",
+    "options": ["A", "B", "C"],
+    "correct_answer": "A"
+  }}
+]
+
+Context:
+{context}
+"""
+
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": "llama3.2",
+            "prompt": prompt,
+            "stream": False
+        }
+    )
+
+    raw = response.json().get("response", "")
+
+    try:
+        questions = json.loads(raw)
+    except:
+        questions = raw  
+
+    return questions
