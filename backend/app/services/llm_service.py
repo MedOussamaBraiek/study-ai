@@ -48,7 +48,8 @@ Return STRICT JSON format like this:
   {{
     "question": "...",
     "options": ["A", "B", "C"],
-    "correct_answer": "A"
+    "correct_answer": "A",
+    "topic": "..."
   }}
 ]
 

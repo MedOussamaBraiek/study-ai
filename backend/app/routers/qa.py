@@ -1,6 +1,6 @@
-from app.services.rag_service import retrieve_context
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
+from app.services.rag_service import retrieve_context
 import app.services.vector_store as vector_store
 from app.services.llm_service import generate_answer, generate_questions_from_context
 
@@ -51,3 +51,4 @@ async def generate_questions(data: QuestionGenRequest):
         "questions": questions,
         "sources": sources
     }
+

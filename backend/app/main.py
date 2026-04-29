@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import pdf, qa
+from app.routers import pdf, qa, learn
 
 app = FastAPI(title = "StudyAI API")
 
@@ -13,6 +13,7 @@ app.add_middleware(
 
 app.include_router(pdf.router, prefix="/pdf")
 app.include_router(qa.router)
+app.include_router(learn.router)
 
 @app.get("/")
 def root():
