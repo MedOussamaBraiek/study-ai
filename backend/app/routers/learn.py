@@ -29,6 +29,10 @@ async def start_session(data: QuestionGenRequest):
      context, sources = retrieve_context(query)
 
      questions = generate_questions_from_context(context, 1, data.mode)
+
+     if not questions:
+        raise HTTPException(status_code=500, detail="No questions generated")
+
      first_question = questions[0]
 
      session_id = str(uuid4())
@@ -44,7 +48,7 @@ async def start_session(data: QuestionGenRequest):
      
      return {
         "session_id": session_id,
-        "first_question": questions[0]
+        "question": questions[0]
     }
 
 # ------------------ ANSWER LOOP ------------------
@@ -70,10 +74,18 @@ async def answer_question(data: AnswerRequest):
 
     evaluation = result["evaluation"]
 
+    if not isinstance(evaluation, dict):
+        evaluation = {
+            "score": 0,
+            "feedback": "Evaluation failed",
+            "is_correct": False
+        }
+
     explanation = result.get("explanation", None)
 
     next_question = {
         "question": result["question"],
+        "options": result.get("options", []),
         "topic": result["topic"]
     }
 
@@ -94,7 +106,7 @@ async def answer_question(data: AnswerRequest):
 
     session["current_question"] = next_question
 
-    if len(session["answers"]) >= 5:
+    if len(session["answers"]) >= 2:
         return {
             "done": True,
             "final_score": session["score"],
