@@ -1,23 +1,26 @@
 from uuid import uuid4
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
+
 from app.services.rag_service import retrieve_context
 from app.services.llm_service import generate_questions_from_context
-from app.services.llm_service import evaluate_answer
 from app.agents.agent_state import app as learning_agent
+
+router = APIRouter()
+
+sessions = {}
+
+# ------------------ REQUEST MODELS ------------------
 
 class QuestionGenRequest(BaseModel):
     topic: str | None = None
-    num_questions: int = 5
     mode: str = "study"
 
 class AnswerRequest(BaseModel):
     session_id: str
     user_answer: str
 
-router = APIRouter()
-
-sessions = {}
+# ------------------ START SESSION ------------------
 
 @router.post("/start-session")
 async def start_session(data: QuestionGenRequest):
@@ -25,23 +28,26 @@ async def start_session(data: QuestionGenRequest):
      query = data.topic if data.topic else "key concepts"
      context, sources = retrieve_context(query)
 
-     questions = generate_questions_from_context(context, data.num_questions, data.mode)
+     questions = generate_questions_from_context(context, 1, data.mode)
+     first_question = questions[0]
 
      session_id = str(uuid4())
 
      sessions[session_id] = {
-        "questions": questions,
-        "current_index": 0,
+        "current_question": first_question,
         "score": 0,
         "answers": [],
         "topics": list(set([s["topic"] for s in sources])),
-        "context": context
+        "context": context,
+        "weak_topics": {}
     }
      
      return {
         "session_id": session_id,
         "first_question": questions[0]
     }
+
+# ------------------ ANSWER LOOP ------------------
 
 @router.post("/answer")
 async def answer_question(data: AnswerRequest):
@@ -50,24 +56,33 @@ async def answer_question(data: AnswerRequest):
 
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+    
+    question = session["current_question"]
 
-    index = session["current_index"]
-    question = session["questions"][index]
-
+    # AGENT CALL
     result = learning_agent.invoke({
         "question": question["question"],
-        "user_answer": data.user_answer
+        "user_answer": data.user_answer,
+        "topic": question.get("topic"),
+        "context": session.get("context"),
+        "weak_topics": session.get("weak_topics", {})
     })
 
     evaluation = result["evaluation"]
-    action = result["next_action"]
 
+    explanation = result.get("explanation", None)
+
+    next_question = {
+        "question": result["question"],
+        "topic": result["topic"]
+    }
+
+    # TRACK WEAK TOPICS
     if evaluation.get("score", 0) < 5:
         topic = question.get("topic")
-
-        session.setdefault("weak_topics", {})
         session["weak_topics"][topic] = session["weak_topics"].get(topic, 0) + 1
 
+    # SAVE HISTORY
     session["answers"].append({
         "question": question,
         "user_answer": data.user_answer,
@@ -76,19 +91,20 @@ async def answer_question(data: AnswerRequest):
     })
 
     session["score"] += evaluation.get("score", 0)
-    session["current_index"] += 1
 
-    if session["current_index"] >= len(session["questions"]):
+    session["current_question"] = next_question
+
+    if len(session["answers"]) >= 5:
         return {
             "done": True,
             "final_score": session["score"],
-            "answers": session["answers"]
-        }
+            "answers": session["answers"],
+            "weak_topics": session["weak_topics"]
+    }
     
-    next_question = session["questions"][session["current_index"]]
-
     return {
         "done": False,
         "evaluation": evaluation,
+        "explanation": explanation,
         "next_question": next_question
     }
