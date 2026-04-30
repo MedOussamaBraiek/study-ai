@@ -106,7 +106,7 @@ async def answer_question(data: AnswerRequest):
 
     session["current_question"] = next_question
 
-    if len(session["answers"]) >= 2:
+    if len(session["answers"]) >= 5:
         return {
             "done": True,
             "final_score": session["score"],
