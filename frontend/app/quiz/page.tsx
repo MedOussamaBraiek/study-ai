@@ -108,7 +108,7 @@ export default function QuizPage() {
       <div className="h-screen flex flex-col items-center justify-center bg-linear-to-br from-green-100 to-blue-100 text-gray-500">
         <h1 className="text-3xl font-bold mb-2">🎉 Test Completed!</h1>
 
-        <p className="text-xl mb-4">
+        <p className="text-xl my-4">
           Final Score: {feedback?.final_score ?? 0}
         </p>
         <p className="text-lg mb-6">XP Earned: {xp}</p>
@@ -116,7 +116,7 @@ export default function QuizPage() {
         <div className="bg-white p-4 rounded-xl shadow w-96">
           <h2 className="font-bold mb-2">Weak Topics</h2>
 
-          {feedback?.weak_topics.length > 0 ? (
+          {Object.keys(feedback?.weak_topics || {}).length > 0 ? (
             Object.entries(feedback.weak_topics).map(([k, v]) => (
               <p key={k}>
                 {k}: {String(v)} mistakes
