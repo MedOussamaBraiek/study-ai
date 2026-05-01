@@ -52,7 +52,12 @@ export default function HomePage() {
 
   return (
     <div className="w-screen min-h-screen flex flex-col items-center justify-center bg-linear-to-br from-blue-400 to-purple-500 text-white">
-      <h1 className="text-4xl font-bold mb-8">Quizzy</h1>
+      <h1 className="text-4xl font-bold mb-5">Quizzy AI</h1>
+
+      <p className="text-center font-semibold tracking-wide max-w-md opacity-90 mb-8 text-amber-100">
+        Turn your PDFs into interactive quizzes. Learn faster with AI-powered
+        questions, instant feedback, and smart repetition.
+      </p>
 
       <label className="cursor-pointer bg-white text-black px-6 py-4 rounded-xl shadow-lg hover:scale-105 transition">
         📄 Choose PDF
@@ -64,14 +69,25 @@ export default function HomePage() {
         />
       </label>
 
-      {file && <p className="file-name mt-3 text-sm">{file.name}</p>}
+      {file && (
+        <p className="file-name mt-3 text-sm underline font-semibold tracking-wide">
+          {file.name}
+        </p>
+      )}
 
       <button
         onClick={handleUpload}
         disabled={loading}
         className="mt-6 bg-green-500 hover:bg-green-600 px-8 py-3 rounded-xl font-semibold shadow-lg transition"
       >
-        {loading ? "Uploading..." : "Start Learning"}
+        {loading ? (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            Processing...
+          </div>
+        ) : (
+          "Start Learning"
+        )}
       </button>
     </div>
   );
