@@ -1,22 +1,17 @@
-from sentence_transformers import SentenceTransformer
-import torch
+import requests
 import os
+import numpy as np
 
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+HF_TOKEN = os.getenv("HF_TOKEN")
+API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
+
+headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 model = None
 
-def get_model():
-    global model
-    if model is None:
-        model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
-    return model
-
 def embed_texts(texts: list[str]):
-    m = get_model()
-    return m.encode(texts)
+    response = requests.post(API_URL, headers=headers, json={"inputs": texts, "options": {"wait_for_model": True}})
+    return np.array(response.json())
 
 def embed_query(query: str):
-    m = get_model()
-    return m.encode([query])
+    return embed_texts([query])
