@@ -1,12 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import pdf, qa, learn
+import os
+
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 app = FastAPI(title = "StudyAI API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://quizzy-ai-frontend.vercel.app"],  
+    allow_origins=["http://localhost:3000", "https://quizzy--ai.vercel.app"],  
     allow_methods=["*"],
     allow_headers=["*"],
 )
