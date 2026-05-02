@@ -15,7 +15,10 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(false);
   const [showNext, setShowNext] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [total, setTotal] = useState(5);
 
+  const [pendingFinish, setPendingFinish] = useState(false);
   const [finished, setFinished] = useState(false);
 
   const [xp, setXp] = useState(0);
@@ -27,10 +30,14 @@ export default function QuizPage() {
     let mounted = true;
 
     const initializeSession = async () => {
-      const res = await api.post("/start-session", {});
+      const res = await api.post("/start-session", {
+        mode: localStorage.getItem("quizMode") || "study",
+        num_questions: Number(localStorage.getItem("quizNumQuestions") || 5),
+      });
       if (mounted) {
         setSessionId(res.data.session_id);
         setQuestion(res.data.question);
+        setTotal(res.data.total_questions);
       }
     };
 
@@ -71,10 +78,13 @@ export default function QuizPage() {
     });
 
     if (res.data.done) {
-      setFinished(true);
+      setPendingFinish(true);
+      setProgress(100);
+    } else {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      setProgress((nextIndex / total) * 100);
     }
-
-    setProgress((prev) => prev + 20);
 
     setFeedback(res.data);
     setLoading(false);
@@ -214,26 +224,34 @@ export default function QuizPage() {
             >
               Score: {feedback?.evaluation?.score ?? 0}
             </p>
-            <p>{feedback?.evaluation?.feedback ?? "No feedback available"}</p>
+            {/* <p>{feedback?.evaluation?.feedback ?? "No feedback available"}</p> */}
 
             {feedback?.explanation && (
               <p className="text-yellow-600 mt-2">{feedback?.explanation}</p>
             )}
           </div>
         )}
-        {showNext && !feedback?.done && (
-          <button
-            onClick={() => {
-              setQuestion(feedback.next_question!);
-              setFeedback(null);
-              setSelected("");
-              setShowNext(false);
-            }}
-            className="bg-blue-500 w-full text-white px-6 py-2 rounded mt-4"
-          >
-            Next Question →
-          </button>
-        )}
+        {showNext &&
+          (pendingFinish ? (
+            <button
+              onClick={() => setFinished(true)}
+              className="bg-green-500 w-full text-white px-6 py-2 rounded mt-4 font-semibold"
+            >
+              See Results →
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setQuestion(feedback.next_question!);
+                setFeedback(null);
+                setSelected("");
+                setShowNext(false);
+              }}
+              className="bg-blue-500 w-full text-white px-6 py-2 rounded mt-4"
+            >
+              Next Question →
+            </button>
+          ))}
       </div>
     </div>
   );

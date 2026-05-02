@@ -1,4 +1,3 @@
-# import requests
 import json
 import re
 
@@ -44,17 +43,6 @@ def generate_answer(context: str, question: str):
     Question:
     {question}
     """
-
-    # Local LLAMA Model
-    # response = requests.post(
-    #     "http://localhost:11434/api/generate",
-    #     json={
-    #         "model": "llama3.2",
-    #         "prompt": prompt,
-    #         "stream": False
-    #     }
-    # )
-
     response = call_llm(prompt)
 
     return response
@@ -120,12 +108,19 @@ def extract_questions(raw: str):
     return results
 
 def generate_questions_from_context(context: str, num_questions: int, mode: str):
-    difficulty = "easy and medium" if mode == "study" else "hard"
+    if mode == "study":
+        difficulty_instruction = "Generate a balanced mix of easy and medium questions."
+    elif mode == "interview":
+        difficulty_instruction = "Generate only hard questions."
+    else:
+        difficulty_instruction = "Generate medium questions."
 
     prompt = f"""
 You are an expert teacher.
 
-Based ONLY on the context below, generate {num_questions} {difficulty} questions.
+Based ONLY on the context below, generate {num_questions} questions.
+
+{difficulty_instruction}
 
 STRICT RULES (MUST FOLLOW):
 - Return ONLY valid JSON
@@ -134,6 +129,12 @@ STRICT RULES (MUST FOLLOW):
 - NEVER leave fields empty
 - correct_answer MUST be one of the options
 - topic MUST NOT be empty
+- difficulty MUST be one of: easy, medium, hard
+
+DIFFICULTY DEFINITIONS:
+- easy: basic definition or recall
+- medium: understanding or explanation
+- hard: reasoning, comparison, or deeper thinking
 
 FORMAT:
 
@@ -142,27 +143,14 @@ FORMAT:
     "question": "string",
     "options": ["option1", "option2", "option3"],
     "correct_answer": "must be EXACTLY one of the options",
-    "topic": "short topic name"
+    "topic": "short topic name",
+    "difficulty": "easy | medium | hard"
   }}
 ]
 
 Context:
 {context}
 """
-
-    # response = requests.post(
-    #     "http://localhost:11434/api/generate",
-    #     json={
-    #         "model": "llama3.2",
-    #         "prompt": prompt,
-    #         "stream": False,
-    #         "options": {
-    #             "temperature": 0.5,
-    #             "num_predict": 500  
-    #         }
-    #     }
-    # )
-    # raw = response.json().get("response", "").strip()
 
     raw  = call_llm(prompt)
 
@@ -228,16 +216,7 @@ Return ONLY JSON:
                 "feedback": "Perfect! ✅",
                 "correct_answer": correct_answer
             }
-    
-    # response = requests.post(
-    # "http://localhost:11434/api/generate",
-    # json={
-    #     "model": "llama3.2",
-    #     "prompt": prompt,
-    #     "stream": False
-    # }   
-    # )
-    # raw = response.json().get("response", "")
+
 
     raw = call_llm(prompt)
 

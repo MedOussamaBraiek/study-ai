@@ -9,6 +9,10 @@ import Image from "next/image";
 export default function HomePage() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [mode, setMode] = useState<"study" | "interview">("study");
+  const [numQuestions, setNumQuestions] = useState(5);
+
   const router = useRouter();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,6 +29,9 @@ export default function HomePage() {
 
   const handleUpload = async () => {
     if (!file) return alert("Please select a PDF");
+
+    localStorage.setItem("quizMode", mode);
+    localStorage.setItem("quizNumQuestions", String(numQuestions));
 
     const formData = new FormData();
     formData.append("file", file);
@@ -77,6 +84,31 @@ export default function HomePage() {
           {file.name}
         </p>
       )}
+
+      <div className="flex gap-3 mt-6">
+        {["study", "interview"].map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m as "study" | "interview")}
+            className={`px-5 py-2 rounded-xl font-semibold transition capitalize
+        ${mode === m ? "bg-white text-blue-600" : "bg-white/20 text-white"}`}
+          >
+            {m === "study" ? "Study mode" : "Exam mode"}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 flex items-center gap-4 text-white">
+        <span className="text-sm font-medium">Questions: {numQuestions}</span>
+        <input
+          type="range"
+          min={3}
+          max={10}
+          value={numQuestions}
+          onChange={(e) => setNumQuestions(Number(e.target.value))}
+          className="w-40"
+        />
+      </div>
 
       <button
         onClick={handleUpload}
