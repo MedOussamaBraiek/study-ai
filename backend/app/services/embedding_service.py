@@ -7,8 +7,6 @@ API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sent
 
 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
-model = None
-
 def embed_texts(texts: list[str]):
     response = requests.post(API_URL, headers=headers, json={"inputs": texts, "options": {"wait_for_model": True}})
     return np.array(response.json())
