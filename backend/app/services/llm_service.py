@@ -1,8 +1,36 @@
-import requests
+# import requests
 import json
 import re
 
+import os
+from dotenv import load_dotenv
+from groq import Groq
 
+
+load_dotenv()
+
+
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+
+def call_llm(prompt: str):
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+            max_tokens=1000
+        )
+
+        return response.choices[0].message.content
+
+    except Exception as e:
+        print("GROQ ERROR:", e)
+        return ""
+    
 def generate_answer(context: str, question: str):
     prompt = f"""
     You are a helpful assistant.
@@ -17,16 +45,19 @@ def generate_answer(context: str, question: str):
     {question}
     """
 
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": "llama3.2",
-            "prompt": prompt,
-            "stream": False
-        }
-    )
+    # Local LLAMA Model
+    # response = requests.post(
+    #     "http://localhost:11434/api/generate",
+    #     json={
+    #         "model": "llama3.2",
+    #         "prompt": prompt,
+    #         "stream": False
+    #     }
+    # )
 
-    return response.json()["response"]
+    response = call_llm(prompt)
+
+    return response
 
 def extract_json_array(raw: str):
     start = raw.find("[")
@@ -110,7 +141,7 @@ FORMAT:
   {{
     "question": "string",
     "options": ["option1", "option2", "option3"],
-    "correct_answer": "one of the options",
+    "correct_answer": "must be EXACTLY one of the options",
     "topic": "short topic name"
   }}
 ]
@@ -119,21 +150,21 @@ Context:
 {context}
 """
 
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": "llama3.2",
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.5,
-                "num_predict": 500  
-            }
-        }
-    )
+    # response = requests.post(
+    #     "http://localhost:11434/api/generate",
+    #     json={
+    #         "model": "llama3.2",
+    #         "prompt": prompt,
+    #         "stream": False,
+    #         "options": {
+    #             "temperature": 0.5,
+    #             "num_predict": 500  
+    #         }
+    #     }
+    # )
+    # raw = response.json().get("response", "").strip()
 
-    raw = response.json().get("response", "").strip()
-
+    raw  = call_llm(prompt)
 
     parsed = extract_questions(raw)
 
@@ -147,6 +178,7 @@ Context:
     return [{
         "question": "Fallback question",
         "options": ["Option 1", "Option 2", "Option 3"],
+        "correct_answer": "Option 1",
         "topic": "general"
     }]
 
@@ -188,20 +220,33 @@ Return ONLY JSON:
 }}
 """
     
-    response = requests.post(
-    "http://localhost:11434/api/generate",
-    json={
-        "model": "llama3.2",
-        "prompt": prompt,
-        "stream": False
-    }   
-    )
+    if correct_answer:
+        if user_answer.strip().lower() == correct_answer.strip().lower():
+            return {
+                "score": 10,
+                "is_correct": True,
+                "feedback": "Perfect! ✅",
+                "correct_answer": correct_answer
+            }
+    
+    # response = requests.post(
+    # "http://localhost:11434/api/generate",
+    # json={
+    #     "model": "llama3.2",
+    #     "prompt": prompt,
+    #     "stream": False
+    # }   
+    # )
+    # raw = response.json().get("response", "")
 
-    raw = response.json().get("response", "")
+    raw = call_llm(prompt)
 
     try:
-        result = json.loads(raw)
+        return json.loads(raw)
     except:
-        result = raw  
-
-    return result
+        return {
+            "score": 0,
+            "is_correct": False,
+            "feedback": "Evaluation failed",
+            "correct_answer": correct_answer
+        }

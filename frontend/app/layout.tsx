@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Quizzy",
+  title: "Quizzy-AI",
   description: "Study with AI",
 };
 

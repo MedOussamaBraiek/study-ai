@@ -88,7 +88,7 @@ export default function QuizPage() {
           : 0;
 
     setXp((prev) => prev + gained);
-    setGainedXp(gained);
+    setGainedXp((prev) => prev + gained);
   };
 
   if (!question)
@@ -105,7 +105,7 @@ export default function QuizPage() {
 
   if (finished) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-linear-to-br from-green-100 to-blue-100 text-gray-500">
+      <div className="h-screen flex flex-col items-center justify-center bg-linear-to-br from-green-100 to-blue-100 text-gray-500 ">
         <h1 className="text-3xl font-bold mb-2">🎉 Test Completed!</h1>
 
         <p className="text-xl my-4">
@@ -113,7 +113,7 @@ export default function QuizPage() {
         </p>
         <p className="text-lg mb-6">XP Earned: {xp}</p>
 
-        <div className="bg-white p-4 rounded-xl shadow w-96">
+        <div className="bg-white p-4 rounded-xl shadow w-96 max-w-[90%]">
           <h2 className="font-bold mb-2">Weak Topics</h2>
 
           {Object.keys(feedback?.weak_topics || {}).length > 0 ? (
@@ -150,7 +150,7 @@ export default function QuizPage() {
         +{gainedXp} XP 🚀
       </div>
 
-      <div className="card bg-white text-gray-500 p-8 rounded-3xl shadow-2xl border border-gray-100 max-w-xl w-full">
+      <div className="card bg-white text-gray-500 p-8 rounded-3xl shadow-2xl border border-gray-100 sm:max-w-xl max-w-[90%] w-full">
         {" "}
         <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden mb-7">
           <div

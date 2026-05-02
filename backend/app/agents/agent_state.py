@@ -3,7 +3,7 @@ from typing import TypedDict
 from app.routers.evaluate import evaluate_answer
 from langgraph.graph import StateGraph
 from app.services.rag_service import retrieve_context
-from app.services.llm_service import generate_questions_from_context
+from app.services.llm_service import generate_questions_from_context, call_llm
 
 
 
@@ -51,6 +51,23 @@ def decision_node(state: LearningState):
         "needs_explanation": needs_explanation
     }
 
+def normalize_question(q: dict):
+    options = q.get("options")
+
+    if not isinstance(options, list) or len(options) != 3:
+        options = ["Option A", "Option B", "Option C"]
+
+    correct = q.get("correct_answer")
+    if correct not in options:
+        correct = options[0]
+
+    return {
+        "question": q.get("question") or "Fallback question",
+        "options": options,
+        "correct_answer": correct,
+        "topic": q.get("topic") or "general"
+    }
+
 def generate_node(state: LearningState):
     action = state["next_action"]
     topic = state["topic"]
@@ -71,11 +88,18 @@ def generate_node(state: LearningState):
 
     questions = generate_questions_from_context(context, 1, "study")
 
-    next_q = questions[0]
+    if not questions or not isinstance(questions, list):
+        questions = []
+
+    q_raw = questions[0] if len(questions) > 0 else {}
+
+    q = normalize_question(q_raw)
 
     return {
-        "question": next_q["question"],
-        "topic": next_q.get("topic", topic),
+        "question": q["question"],
+        "options": q["options"],
+        "correct_answer": q["correct_answer"],
+        "topic": q["topic"],
         "context": context
     }
 
@@ -98,16 +122,18 @@ def explain_node(state: LearningState):
         {context}
         """
 
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": "llama3.2",
-            "prompt": prompt,
-            "stream": False
-        }
-    )
+    # response = requests.post(
+    #     "http://localhost:11434/api/generate",
+    #     json={
+    #         "model": "llama3.2",
+    #         "prompt": prompt,
+    #         "stream": False
+    #     }
+    # )
 
-    explanation = response.json().get("response", "")
+    response = call_llm(prompt) 
+
+    explanation = response
 
     return {
         "explanation": explanation

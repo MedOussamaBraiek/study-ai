@@ -20,39 +20,57 @@ class AnswerRequest(BaseModel):
     session_id: str
     user_answer: str
 
+
+def normalize_question(q: dict):
+    options = q.get("options")
+
+    if not isinstance(options, list) or len(options) != 3:
+        options = ["Option A", "Option B", "Option C"]
+
+    correct = q.get("correct_answer")
+    if correct not in options:
+        correct = options[0]
+
+    return {
+        "question": q.get("question") or "Fallback question",
+        "options": options,
+        "correct_answer": correct,
+        "topic": q.get("topic") or "general"
+    }
+
 # ------------------ START SESSION ------------------
 
 @router.post("/start-session")
 async def start_session(data: QuestionGenRequest):
-     
-     query = data.topic if data.topic else "key concepts"
-     context, sources = retrieve_context(query)
 
-     questions = generate_questions_from_context(context, 1, data.mode)
+    query = data.topic if data.topic else "key concepts"
+    context, sources = retrieve_context(query)
 
-     if not questions:
+    questions = generate_questions_from_context(context, 5, data.mode)
+
+    if not questions:
         raise HTTPException(status_code=500, detail="No questions generated")
 
-     first_question = questions[0]
+    normalized_questions = [normalize_question(q) for q in questions]
 
-     session_id = str(uuid4())
+    session_id = str(uuid4())
 
-     sessions[session_id] = {
-        "current_question": first_question,
+    sessions[session_id] = {
+        "questions": normalized_questions,
+        "current_index": 0,
         "score": 0,
         "answers": [],
         "topics": list(set([s["topic"] for s in sources])),
         "context": context,
         "weak_topics": {}
     }
-     
-     return {
+
+    return {
         "session_id": session_id,
-        "question": questions[0]
+        "question": normalized_questions[0]
     }
 
 # ------------------ ANSWER LOOP ------------------
-
 @router.post("/answer")
 async def answer_question(data: AnswerRequest):
 
@@ -60,41 +78,35 @@ async def answer_question(data: AnswerRequest):
 
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-    
-    question = session["current_question"]
 
-    # AGENT CALL
-    result = learning_agent.invoke({
-        "question": question["question"],
-        "user_answer": data.user_answer,
-        "topic": question.get("topic"),
-        "context": session.get("context"),
-        "weak_topics": session.get("weak_topics", {})
-    })
+    index = session["current_index"]
+    question = session["questions"][index]
 
-    evaluation = result["evaluation"]
+    correct_answer = question.get("correct_answer")
 
-    if not isinstance(evaluation, dict):
+    # ----------- EVALUATION (deterministic) -----------
+    if data.user_answer.strip().lower() == correct_answer.strip().lower():
+        evaluation = {
+            "score": 10,
+            "is_correct": True,
+            "feedback": "Perfect! 🎯"
+        }
+    else:
         evaluation = {
             "score": 0,
-            "feedback": "Evaluation failed",
-            "is_correct": False
+            "is_correct": False,
+            "feedback": f"Wrong. Correct answer: {correct_answer}"
         }
 
-    explanation = result.get("explanation", None)
+    # ----------- TRACK WEAK TOPICS -----------
+    if evaluation["score"] < 5:
+        topic = question.get("topic") or "general"
 
-    next_question = {
-        "question": result["question"],
-        "options": result.get("options", []),
-        "topic": result["topic"]
-    }
-
-    # TRACK WEAK TOPICS
-    if evaluation.get("score", 0) < 5:
-        topic = question.get("topic")
+        session.setdefault("weak_topics", {})
+        
         session["weak_topics"][topic] = session["weak_topics"].get(topic, 0) + 1
 
-    # SAVE HISTORY
+    # ----------- SAVE HISTORY -----------
     session["answers"].append({
         "question": question,
         "user_answer": data.user_answer,
@@ -102,21 +114,23 @@ async def answer_question(data: AnswerRequest):
         "topic": question.get("topic")
     })
 
-    session["score"] += evaluation.get("score", 0)
+    session["score"] += evaluation["score"]
+    session["current_index"] += 1
 
-    session["current_question"] = next_question
-
-    if len(session["answers"]) >= 5:
+    # ----------- FINISH -----------
+    if session["current_index"] >= len(session["questions"]):
         return {
             "done": True,
             "final_score": session["score"],
             "answers": session["answers"],
             "weak_topics": session["weak_topics"]
-    }
-    
+        }
+
+    next_question = session["questions"][session["current_index"]]
+
     return {
         "done": False,
         "evaluation": evaluation,
-        "explanation": explanation,
         "next_question": next_question
     }
+

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { gsap } from "gsap";
+import Image from "next/image";
 
 export default function HomePage() {
   const [file, setFile] = useState<File | null>(null);
@@ -52,9 +53,11 @@ export default function HomePage() {
 
   return (
     <div className="w-screen min-h-screen flex flex-col items-center justify-center bg-linear-to-br from-blue-400 to-purple-500 text-white">
-      <h1 className="text-4xl font-bold mb-5">Quizzy AI</h1>
+      <Image src="/quizzy-logo.png" width={300} height={300} alt="logo" />
 
-      <p className="text-center font-semibold tracking-wide max-w-md opacity-90 mb-8 text-amber-100">
+      {/* <h1 className="text-5xl font-bold ">Quizzy AI</h1> */}
+
+      <p className="text-center font-semibold tracking-wider sm:max-w-lg max-w-[90%] opacity-90 mb-10 text-amber-100 sm:text-xl text-[18px]">
         Turn your PDFs into interactive quizzes. Learn faster with AI-powered
         questions, instant feedback, and smart repetition.
       </p>
