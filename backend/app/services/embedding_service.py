@@ -1,5 +1,7 @@
 from sentence_transformers import SentenceTransformer
 
+model = None
+
 def get_model():
     global model
     if model is None:
@@ -7,9 +9,9 @@ def get_model():
     return model
 
 def embed_texts(texts: list[str]):
-    get_model()
-    return model.encode(texts)
+    m = get_model()
+    return m.encode(texts)
 
 def embed_query(query: str):
-    get_model()
-    return model.encode([query])
+    m = get_model()
+    return m.encode([query])
