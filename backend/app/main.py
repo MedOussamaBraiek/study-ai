@@ -6,7 +6,7 @@ app = FastAPI(title = "StudyAI API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://study-ai-nine-mu.vercel.app/"],  
+    allow_origins=["https://quizzy-ai-frontend.vercel.app"],  
     allow_methods=["*"],
     allow_headers=["*"],
 )
