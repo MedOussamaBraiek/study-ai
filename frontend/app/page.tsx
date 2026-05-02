@@ -9,6 +9,7 @@ import Image from "next/image";
 export default function HomePage() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   const [mode, setMode] = useState<"study" | "interview">("study");
   const [numQuestions, setNumQuestions] = useState(5);
@@ -55,6 +56,23 @@ export default function HomePage() {
       alert("Upload failed");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const summarizePDF = async () => {
+    if (!file) return alert("Please select a PDF");
+    try {
+      setLoadingSummary(true);
+
+      const res = await api.post("/summarize");
+      localStorage.setItem("summary", res.data.summary);
+      router.push("/summary");
+      console.log(res);
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed");
+    } finally {
+      setLoadingSummary(false);
     }
   };
 
@@ -110,20 +128,36 @@ export default function HomePage() {
         />
       </div>
 
-      <button
-        onClick={handleUpload}
-        disabled={loading}
-        className="mt-6 bg-green-500 hover:bg-green-600 px-8 py-3 rounded-xl font-semibold shadow-lg transition"
-      >
-        {loading ? (
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            Processing...
-          </div>
-        ) : (
-          "Start Learning"
-        )}
-      </button>
+      <div className="flex gap-5 items-center">
+        <button
+          onClick={summarizePDF}
+          disabled={loadingSummary}
+          className="mt-6 bg-green-500 hover:bg-green-600 px-8 py-3 rounded-xl font-semibold shadow-lg transition"
+        >
+          {loadingSummary ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Processing...
+            </div>
+          ) : (
+            "Summarize PDF"
+          )}
+        </button>
+        <button
+          onClick={handleUpload}
+          disabled={loading}
+          className="mt-6 bg-green-500 hover:bg-green-600 px-8 py-3 rounded-xl font-semibold shadow-lg transition"
+        >
+          {loading ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Processing...
+            </div>
+          ) : (
+            "Start Learning"
+          )}
+        </button>
+      </div>
     </div>
   );
 }
