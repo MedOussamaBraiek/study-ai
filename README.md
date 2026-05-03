@@ -1,3 +1,11 @@
+## Demo
+
+![QuizzyAI Interface](/frontend/assets/quizzy-demo.png)
+
+![QuizzyAI Demo](/frontend/assets/Animation.gif)
+
+![Symmarize Demo](/frontend/assets/Animation-summary.gif)
+
 # QuizzyAI
 
 Turn any PDF into an adaptive quiz. Upload a document, answer questions, 
@@ -17,6 +25,14 @@ and the AI adjusts difficulty based on your performance.
 - **Frontend**: Next.js 14, Tailwind CSS, GSAP
 - **RAG**: HuggingFace embeddings (all-MiniLM-L6-v2) + FAISS vector search
 
+## Features
+
+- **PDF summarization** — before the quiz starts, the AI summarizes 
+  the key topics it detected in your document
+- **Adaptive questioning** — difficulty adjusts based on your answers
+- **Instant explanations** — wrong answers get a concise 1-2 sentence explanation
+- **Weak topic tracking** — results show which topics need more review
+
 ## Run locally
 
 ```bash
@@ -32,12 +48,21 @@ npm install
 npm run dev
 ```
 
-## Architecture
+## Agent Architecture
 
-```bash
-PDF Upload → RAG ingestion → Question generation → LangGraph quiz loop
-                                                        ↓
-                                              evaluate → decide → explain?
-                                                        ↓
-                                              next question (adaptive)
+```mermaid
+graph TD
+    A([User Answer]) --> B[evaluate_node\nexact match → score]
+    B --> C[decide_node\nsets next_action]
+    C -->|wrong| D[explain_node\n1-2 sentence explanation]
+    C -->|correct| E([end])
+    D --> E
+    E --> F{done?}
+    F -->|no| G[select_next_question\nharder / repeat / focus_weak]
+    F -->|yes| H([Results Screen])
 ```
+
+
+> LangGraph compiles this into a stateful graph. Each node receives the full
+> `LearningState` dict and returns only the fields it modifies.
+
