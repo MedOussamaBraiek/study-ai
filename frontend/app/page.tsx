@@ -128,11 +128,11 @@ export default function HomePage() {
         />
       </div>
 
-      <div className="flex gap-5 items-center">
+      <div className="mt-6 flex sm:flex-nowrap flex-wrap-reverse gap-5 justify-center items-center">
         <button
           onClick={summarizePDF}
           disabled={loadingSummary}
-          className="mt-6 bg-green-500 hover:bg-green-600 px-8 py-3 rounded-xl font-semibold shadow-lg transition"
+          className=" bg-green-500 hover:bg-green-600 px-8 py-3 rounded-xl font-semibold shadow-lg transition"
         >
           {loadingSummary ? (
             <div className="flex items-center gap-2">
@@ -146,7 +146,7 @@ export default function HomePage() {
         <button
           onClick={handleUpload}
           disabled={loading}
-          className="mt-6 bg-green-500 hover:bg-green-600 px-8 py-3 rounded-xl font-semibold shadow-lg transition"
+          className=" bg-green-500 hover:bg-green-600 px-8 py-3 rounded-xl font-semibold shadow-lg transition"
         >
           {loading ? (
             <div className="flex items-center gap-2">
