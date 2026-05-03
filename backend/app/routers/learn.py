@@ -72,8 +72,10 @@ async def start_session(data: QuestionGenRequest):
 
     sessions[session_id] = {
         "shown_ids": {0},
+        "total": len(normalized_questions),
         "questions": normalized_questions,
-        "current_index": 0,
+        "answered_count": 0, 
+        "current_question": normalized_questions[0],
         "score": 0,
         "answers": [],
         "topics": list(set([s["topic"] for s in sources])),
@@ -87,6 +89,8 @@ async def start_session(data: QuestionGenRequest):
         "total_questions": len(normalized_questions),
     }
 
+# ------------------ Answer Question ------------------
+
 @router.post("/answer")
 async def answer_question(data: AnswerRequest):
 
@@ -96,8 +100,7 @@ async def answer_question(data: AnswerRequest):
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    index = session["current_index"]
-    question = session["questions"][index]
+    question = session["current_question"]
 
 
     agent_state = {
@@ -138,16 +141,19 @@ async def answer_question(data: AnswerRequest):
         "topic": question.get("topic"),
     })
     session["score"] += score
-    session["current_index"] += 1
 
-    if session["current_index"] >= len(session["questions"]):
+    session["answered_count"] += 1
+
+    if session["answered_count"] >= session["total"]:
         return {
             "done": True,
+            "evaluation": evaluation,
             "final_score": session["score"],
             "weak_topics": session["weak_topics"]
         }
     
     next_question = select_next_question(session, action)
+    session["current_question"] = next_question
 
     return {
         "done": False,
@@ -155,3 +161,5 @@ async def answer_question(data: AnswerRequest):
         "next_question": next_question,
         "explanation": explanation,
     }
+
+

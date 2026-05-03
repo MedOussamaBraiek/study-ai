@@ -1,9 +1,10 @@
 import json
 import re
+from fastapi import HTTPException
 
 import os
 from dotenv import load_dotenv
-from groq import Groq
+from groq import Groq, RateLimitError
 
 
 load_dotenv()
@@ -21,14 +22,16 @@ def call_llm(prompt: str):
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
-            max_tokens=1000
+            max_tokens=500
         )
 
         return response.choices[0].message.content
 
-    except Exception as e:
-        print("GROQ ERROR:", e)
-        return ""
+    except RateLimitError as e:
+        raise HTTPException(
+            status_code=429,
+            detail="AI rate limit reached. Please wait a few minutes and try again."
+        )
     
 def generate_answer(context: str, question: str):
     prompt = f"""
@@ -229,3 +232,14 @@ Return ONLY JSON:
             "feedback": "Evaluation failed",
             "correct_answer": correct_answer
         }
+    
+
+def generate_summary(text: str):
+    prompt = f"""
+    You are a helpful assistant.
+    Summarize this text, make it shorter but keep the key ideas and highlight important points.
+    
+    Text:
+    {text}
+    """
+    return call_llm(prompt)

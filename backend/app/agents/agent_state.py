@@ -31,14 +31,13 @@ def evaluate_node(state: LearningState):
 
 def decide_node(state: LearningState):
     if not state["is_correct"]:
-        return {"next_action": "repeat", "needs_explanation": True}
+        return {"next_action": "same_level", "needs_explanation": True}
+    
     diff = state.get("difficulty", "medium")
-    if diff == "easy":
-        return {"next_action": "harder", "needs_explanation": False}
-    elif diff == "medium":
-        return {"next_action": "harder", "needs_explanation": False}
-    else:
-        return {"next_action": "same_level", "needs_explanation": False}
+    next_diff = {"easy": "medium", "medium": "hard"}.get(diff, "same_level")
+    action = "harder" if next_diff != "same_level" else "same_level"
+   
+    return {"next_action": action, "needs_explanation": False}
     
 
     
@@ -90,27 +89,32 @@ def build_agent():
 
 def select_next_question(session, action):
     questions = session["questions"]
-    current = questions[session["current_index"]]
+    answered_questions = {a["question"]["question"] for a in session["answers"]}
 
+    current = session["current_question"] 
     current_diff = current.get("difficulty", "medium")
 
-    if action == "harder":
-        target = "hard" if current_diff != "hard" else "hard"
+    # Filter out already-answered questions
+    unanswered = [q for q in questions if q["question"] not in answered_questions]
 
-    elif action == "repeat":
+    if not unanswered:
         return current
+
+    if action == "harder":
+        next_diff = {"easy": "medium", "medium": "hard"}.get(current_diff, "hard")
+        pool = [q for q in unanswered if q.get("difficulty") == next_diff]
+        if not pool:
+            pool = unanswered  
 
     elif action == "focus_weak":
         weak_topic = max(session["weak_topics"], key=session["weak_topics"].get, default=None)
-        filtered = [q for q in questions if q.get("topic") == weak_topic]
-        return random.choice(filtered) if filtered else current
+        pool = [q for q in unanswered if q.get("topic") == weak_topic]
+        if not pool:
+            pool = unanswered
 
     else:  
-        target = current_diff
-
-    pool = [q for q in questions if q.get("difficulty") == target]
-
-    if not pool:
-        return current  
+        pool = [q for q in unanswered if q.get("difficulty") == current_diff]
+        if not pool:
+            pool = unanswered
 
     return random.choice(pool)
