@@ -64,10 +64,15 @@ export default function HomePage() {
     try {
       setLoadingSummary(true);
 
+      const formData = new FormData();
+      formData.append("file", file);
+      await api.post("/pdf/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       const res = await api.post("/summarize");
       localStorage.setItem("summary", res.data.summary);
       router.push("/summary");
-      console.log(res);
     } catch (err) {
       console.error(err);
       alert("Upload failed");
